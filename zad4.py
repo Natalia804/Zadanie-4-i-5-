@@ -27,7 +27,7 @@ st.title("Analiza modeli decyzyjnych w Pythonie")
 # Automatyczne ładowanie danych z osadzonego pliku CSV
 @st.cache_data
 def load_data():
-    file_path = "zad3_Airline.csv"  
+    file_path = "dane/zad3_Airline.csv"  
     data = pd.read_csv(file_path, sep=';')
     return data
 
@@ -51,14 +51,14 @@ for col in categorical_cols:
 data['satisfaction'] = data['satisfaction'].apply(lambda x: 1 if x == 'satisfied' else 0)
 
 
-pokaz_dane = st.checkbox("Pokaż dane")
+pokaz_dane = st.checkbox("Pokaż dane po przetworzeniu zmiennych kategorycznych")
 
 # Wyświetlanie danych w zależności od stanu toggle
 if pokaz_dane:
-    st.write("Oto dane:")
+    st.write("")
     st.dataframe(data)
 else:
-    st.write("Dane są ukryte.")
+    st.write("")
 
 # Podział na X i y
 X = data.drop(columns=['satisfaction'])
