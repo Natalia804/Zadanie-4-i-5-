@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier, plot_tree
@@ -15,10 +16,10 @@ def evaluate_model(model, X_train, X_test, y_train, y_test):
     
     return {
         "Accuracy (Train)": accuracy_score(y_train, y_train_pred),
-        "Accuracy (Test)": accuracy_score(y_test, y_test_pred),
-        "Precision (Test)": precision_score(y_test, y_test_pred),
-        "Recall (Test)": recall_score(y_test, y_test_pred),
-        "Confusion Matrix (Test)": confusion_matrix(y_test, y_test_pred),
+        "Accuracy": accuracy_score(y_test, y_test_pred),
+        "Precision": precision_score(y_test, y_test_pred),
+        "Recall": recall_score(y_test, y_test_pred),
+        "Confusion Matrix": confusion_matrix(y_test, y_test_pred),
     }
 
 # Nagłówek aplikacji
@@ -27,9 +28,7 @@ st.title("Analiza modeli decyzyjnych w Pythonie")
 # Automatyczne ładowanie danych z osadzonego pliku CSV
 @st.cache_data
 def load_data():
-
     file_path = "dane/zad3_Airline.csv"  
-
     data = pd.read_csv(file_path, sep=';')
     return data
 
@@ -41,14 +40,8 @@ import numpy as np
 
 def uzupelnij_braki_kategoryczne(df, kolumny):
     """
-    Uzupełnia braki w danych kategorycznych losowymi wartościami z istniejących kategorii.
-
-    Parametry:
-    df (DataFrame): DataFrame z danymi.
-    kolumny (list): Lista nazw kolumn kategorycznych do uzupełnienia.
-
-    Zwraca:
-    DataFrame: DataFrame z uzupełnionymi brakami.
+    Uzupełnia brakujące wartości w kategorycznych kolumnach 
+    losowymi wartościami z istniejących wartości w tych kolumnach.
     """
     for kolumna in kolumny:
         istniejące_wartosci = df[kolumna].dropna().unique()
@@ -59,6 +52,18 @@ def uzupelnij_braki_kategoryczne(df, kolumny):
     return df
 
 
+def uzupelnij_braki_kategoryczne(df, kolumny):
+    """
+    Uzupełnia brakujące wartości w kategorycznych kolumnach 
+    losowymi wartościami z istniejących wartości w tych kolumnach.
+    """
+    for kolumna in kolumny:
+        istniejące_wartosci = df[kolumna].dropna().unique()
+        maska_brakow = df[kolumna].isna()
+        liczba_brakow = maska_brakow.sum()
+        losowe_wartosci = np.random.choice(istniejące_wartosci, size=liczba_brakow, replace=True)
+        df.loc[maska_brakow, kolumna] = losowe_wartosci
+    return df
 
 # Czyszczenie i przygotowanie danych
 data['Age'].fillna(data['Age'].median(), inplace=True)
@@ -79,10 +84,10 @@ pokaz_dane = st.checkbox("Pokaż dane po przetworzeniu zmiennych kategorycznych"
 
 # Wyświetlanie danych w zależności od stanu toggle
 if pokaz_dane:
-    st.write("")
+    st.write("???")
     st.dataframe(data)
 else:
-    st.write("")
+    st.write("???")
 
 # Podział na X i y
 X = data.drop(columns=['satisfaction'])
@@ -94,7 +99,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 
-st.write("")
+st.write("???")
 st.divider()
 # Proste drzewo decyzyjne
 st.subheader("Proste drzewo decyzyjne")
@@ -104,38 +109,46 @@ max_depth = st.slider("Maksymalna głębokość drzewa", min_value=2, max_value=
 dt_model = DecisionTreeClassifier(criterion=criterion, max_depth=max_depth, random_state=42)
 dt_model.fit(X_train, y_train)
 
-# Wizualizacja drzewa decyzyjnego (przesunięta bezpośrednio pod suwakiem)
-st.subheader("Wizualizacja drzewa decyzyjnego")
+# Wizualizacja drzewa decyzyjnego
+st.subheader(f"Wizualizacja drzewa decyzyjnego")
+st.write(f"z zastosowaniem reguły klasyfikacyjnej `{criterion}` i maksymalną głębokością równą `{max_depth}`")
 fig, ax = plt.subplots(figsize=(12, 8))
-plot_tree(dt_model, feature_names=X.columns, class_names=["Neutral/Dissatisfied", "Satisfied"], filled=True, ax=ax)
+
+# Wykres drzewa
+plot_tree(
+    dt_model, 
+    feature_names=X.columns, 
+    class_names=["Neutral/Dissatisfied", "Satisfied"], 
+    filled=True, 
+    ax=ax)
 st.pyplot(fig)
 
 # Ocena modelu drzewa
 dt_metrics = evaluate_model(dt_model, X_train, X_test, y_train, y_test)
 
 # Wizualizacja wyników drzewa decyzyjnego w bardziej atrakcyjny sposób
-st.write("### Wyniki drzewa decyzyjnego")
+st.write("#### Wyniki drzewa decyzyjnego")
 
 # Dodanie kolumn dla wskaźników
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric(label="Dokładność (Test)", value=f"{dt_metrics['Accuracy (Test)']:.2f}")
+    st.metric(label="Dokładność", value=f"{dt_metrics['Accuracy']:.2f}")
 
 with col2:
-    st.metric(label="Precyzja (Test)", value=f"{dt_metrics['Precision (Test)']:.2f}")
+    st.metric(label="Precyzja", value=f"{dt_metrics['Precision']:.2f}")
 
 with col3:
-    st.metric(label="Czułość (Test)", value=f"{dt_metrics['Recall (Test)']:.2f}")
+    st.metric(label="Czułość", value=f"{dt_metrics['Recall']:.2f}")
 
 
 # Wizualizacja macierzy konfuzji
 conf_matrix = pd.DataFrame(
-    dt_metrics["Confusion Matrix (Test)"], 
+    dt_metrics["Confusion Matrix"], 
     index=["Neutral/Dissatisfied", "Satisfied"], 
     columns=["Predicted Neutral/Dissatisfied", "Predicted Satisfied"]
 )
-st.write("Macierz konfuzji (Test):")
+st.write("Macierz konfuzji:")
 st.dataframe(conf_matrix)
 
 
@@ -153,9 +166,9 @@ for criterion in ["gini", "entropy"]:
         comparison_results.append({
             "Criterion": criterion,
             "Max Depth": depth,
-            "Accuracy (Test)": metrics["Accuracy (Test)"],
-            "Precision (Test)": metrics["Precision (Test)"],
-            "Recall (Test)": metrics["Recall (Test)"]
+            "Accuracy": metrics["Accuracy"],
+            "Precision": metrics["Precision"],
+            "Recall": metrics["Recall"]
         })
 
 # Konwersja wyników do DataFrame
@@ -165,7 +178,7 @@ comparison_df = pd.DataFrame(comparison_results)
 pivoted_df = comparison_df.pivot_table(
     index="Max Depth",
     columns="Criterion",
-    values=["Accuracy (Test)", "Precision (Test)", "Recall (Test)"]
+    values=["Accuracy", "Precision", "Recall"]
 )
 
 # Wyświetlenie przekształconej tabeli
@@ -178,7 +191,7 @@ st.write("### Wykres porównawczy dokładności")
 fig = px.line(
     comparison_df,
     x="Max Depth",
-    y="Accuracy (Test)",
+    y="Accuracy",
     color="Criterion",
     markers=True,
     title="Porównanie dokładności dla różnych głębokości drzewa i reguł klasyfikacyjnych"
@@ -203,18 +216,18 @@ bagging_metrics = evaluate_model(bagging_model, X_train, X_test, y_train, y_test
 
 # Wizualizacja wyników baggingu
 st.write("### Wyniki baggingu")
-st.metric("Dokładność (Test)", f"{bagging_metrics['Accuracy (Test)']:.2f}")
-st.metric("Precyzja (Test)", f"{bagging_metrics['Precision (Test)']:.2f}")
-st.metric("Czułość (Test)", f"{bagging_metrics['Recall (Test)']:.2f}")
+st.metric("Dokładność", f"{bagging_metrics['Accuracy']:.2f}")
+st.metric("Precyzja", f"{bagging_metrics['Precision']:.2f}")
+st.metric("Czułość", f"{bagging_metrics['Recall']:.2f}")
 st.write("")
 st.divider()
 # Porównanie wyników
 st.subheader("Porównanie wyników")
 comparison_df = pd.DataFrame({
     "Model": ["Drzewo Decyzyjne", "Bagging"],
-    "Accuracy (Test)": [dt_metrics["Accuracy (Test)"], bagging_metrics["Accuracy (Test)"]],
-    "Precision (Test)": [dt_metrics["Precision (Test)"], bagging_metrics["Precision (Test)"]],
-    "Recall (Test)": [dt_metrics["Recall (Test)"], bagging_metrics["Recall (Test)"]]
+    "Accuracy": [dt_metrics["Accuracy"], bagging_metrics["Accuracy"]],
+    "Precision": [dt_metrics["Precision"], bagging_metrics["Precision"]],
+    "Recall": [dt_metrics["Recall"], bagging_metrics["Recall"]]
 })
 
 # Wykres porównania wyników
@@ -260,9 +273,9 @@ feature_importances = pd.DataFrame({
 
 # Wyniki lasów losowych
 st.write("### Wyniki lasów losowych")
-st.metric("Dokładność (Test)", f"{rf_metrics['Accuracy (Test)']:.2f}")
-st.metric("Precyzja (Test)", f"{rf_metrics['Precision (Test)']:.2f}")
-st.metric("Czułość (Test)", f"{rf_metrics['Recall (Test)']:.2f}")
+st.metric("Dokładność", f"{rf_metrics['Accuracy']:.2f}")
+st.metric("Precyzja", f"{rf_metrics['Precision']:.2f}")
+st.metric("Czułość", f"{rf_metrics['Recall']:.2f}")
 
 st.write("Ważność zmiennych w modelu lasów losowych:")
 st.dataframe(feature_importances)
@@ -298,9 +311,9 @@ boost_metrics = evaluate_model(boost_model, X_train, X_test, y_train, y_test)
 
 # Wyniki boostingu
 st.write("### Wyniki boostingu")
-st.metric("Dokładność (Test)", f"{boost_metrics['Accuracy (Test)']:.2f}")
-st.metric("Precyzja (Test)", f"{boost_metrics['Precision (Test)']:.2f}")
-st.metric("Czułość (Test)", f"{boost_metrics['Recall (Test)']:.2f}")
+st.metric("Dokładność", f"{boost_metrics['Accuracy']:.2f}")
+st.metric("Precyzja", f"{boost_metrics['Precision']:.2f}")
+st.metric("Czułość", f"{boost_metrics['Recall']:.2f}")
 
 # Ważność zmiennych w boostingu
 boost_importances = pd.DataFrame({
