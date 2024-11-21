@@ -27,7 +27,7 @@ st.title("Analiza modeli decyzyjnych w Pythonie")
 # Automatyczne ładowanie danych z osadzonego pliku CSV
 @st.cache_data
 def load_data():
-    file_path = "zad3_Airline.csv"  
+    file_path = "data/zad3_Airline.csv"  
     data = pd.read_csv(file_path, sep=';')
     return data
 
