@@ -69,30 +69,42 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
+# st.subheader("Balans danych")
+# class_distribution = y.value_counts()
+# st.bar_chart(class_distribution)
+# st.write("Rozkład klas w zbiorze danych:", class_distribution)
+# counts = data['satisfaction'].value_counts()
+# st.write(counts)
 
-st.write("")
 st.divider()
 # Proste drzewo decyzyjne
 st.subheader("Proste drzewo decyzyjne")
-criterion = st.selectbox("Wybierz regułę` klasyfikacyjną", ["gini", "entropy"])
-st.write(f"Wybrana reguła klasyfikacyjna: **`{criterion}`**")
+criterion = st.selectbox("Wybierz regułę klasyfikacyjną", ["gini", "entropy"])
 
 max_depth = st.slider("Maksymalna głębokość drzewa", min_value=2, max_value=10, value=5)
 
 dt_model = DecisionTreeClassifier(criterion=criterion, max_depth=max_depth, random_state=42)
 dt_model.fit(X_train, y_train)
 
-# Wizualizacja drzewa decyzyjnego (przesunięta bezpośrednio pod suwakiem)
-st.subheader("Wizualizacja drzewa decyzyjnego")
+# Wizualizacja drzewa decyzyjnego
+st.subheader(f"Wizualizacja drzewa decyzyjnego")
+st.write(f"z zastosowaniem reguły klasyfikacyjnej `{criterion}` i maksymalną głębokością równą `{max_depth}`")
 fig, ax = plt.subplots(figsize=(12, 8))
-plot_tree(dt_model, feature_names=X.columns, class_names=["Neutral/Dissatisfied", "Satisfied"], filled=True, ax=ax)
+
+# Wykres drzewa
+plot_tree(
+    dt_model, 
+    feature_names=X.columns, 
+    class_names=["Neutral/Dissatisfied", "Satisfied"], 
+    filled=True, 
+    ax=ax)
 st.pyplot(fig)
 
 # Ocena modelu drzewa
 dt_metrics = evaluate_model(dt_model, X_train, X_test, y_train, y_test)
 
 # Wizualizacja wyników drzewa decyzyjnego w bardziej atrakcyjny sposób
-st.write("### Wyniki drzewa decyzyjnego")
+st.write("#### Wyniki drzewa decyzyjnego")
 
 # Dodanie kolumn dla wskaźników
 col1, col2, col3 = st.columns(3)
