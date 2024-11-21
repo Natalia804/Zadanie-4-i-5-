@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.tree import DecisionTreeClassifier, plot_tree
@@ -27,19 +28,30 @@ st.title("Analiza modeli decyzyjnych w Pythonie")
 # Automatyczne ładowanie danych z osadzonego pliku CSV
 @st.cache_data
 def load_data():
-    file_path = "data/zad3_Airline.csv"  
+    file_path = "dane/zad3_Airline.csv"  
     data = pd.read_csv(file_path, sep=';')
     return data
 
 # Wczytanie danych
 data = load_data()
 
+def uzupelnij_braki_kategoryczne(df, kolumny):
+    """
+    Uzupełnia brakujące wartości w kategorycznych kolumnach 
+    losowymi wartościami z istniejących wartości w tych kolumnach.
+    """
+    for kolumna in kolumny:
+        istniejące_wartosci = df[kolumna].dropna().unique()
+        maska_brakow = df[kolumna].isna()
+        liczba_brakow = maska_brakow.sum()
+        losowe_wartosci = np.random.choice(istniejące_wartosci, size=liczba_brakow, replace=True)
+        df.loc[maska_brakow, kolumna] = losowe_wartosci
+    return df
 
 # Czyszczenie i przygotowanie danych
-data['Customer.Type'].fillna('Unknown', inplace=True)
 data['Age'].fillna(data['Age'].median(), inplace=True)
-data['Gate.location'].fillna(data['Gate.location'].median(), inplace=True)
 data['Arrival.Delay.in.Minutes'].fillna(data['Arrival.Delay.in.Minutes'].median(), inplace=True)
+data = uzupelnij_braki_kategoryczne(data, ['Customer.Type', 'Gate.location'])
 
 st.write("Podgląd danych:", data.head())
 
@@ -51,14 +63,14 @@ for col in categorical_cols:
 data['satisfaction'] = data['satisfaction'].apply(lambda x: 1 if x == 'satisfied' else 0)
 
 
-pokaz_dane = st.checkbox("Pokaż dane")
+pokaz_dane = st.checkbox("Pokaż dane po przetworzeniu zmiennych kategorycznych")
 
 # Wyświetlanie danych w zależności od stanu toggle
 if pokaz_dane:
-    st.write("Oto dane:")
+    st.write("???")
     st.dataframe(data)
 else:
-    st.write("Dane są ukryte.")
+    st.write("???")
 
 # Podział na X i y
 X = data.drop(columns=['satisfaction'])
@@ -69,18 +81,12 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# st.subheader("Balans danych")
-# class_distribution = y.value_counts()
-# st.bar_chart(class_distribution)
-# st.write("Rozkład klas w zbiorze danych:", class_distribution)
-# counts = data['satisfaction'].value_counts()
-# st.write(counts)
 
+st.write("???")
 st.divider()
 # Proste drzewo decyzyjne
 st.subheader("Proste drzewo decyzyjne")
 criterion = st.selectbox("Wybierz regułę klasyfikacyjną", ["gini", "entropy"])
-
 max_depth = st.slider("Maksymalna głębokość drzewa", min_value=2, max_value=10, value=5)
 
 dt_model = DecisionTreeClassifier(criterion=criterion, max_depth=max_depth, random_state=42)
