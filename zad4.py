@@ -34,12 +34,34 @@ def load_data():
 # Wczytanie danych
 data = load_data()
 
+import pandas as pd
+import numpy as np
+
+def uzupelnij_braki_kategoryczne(df, kolumny):
+    """
+    Uzupełnia braki w danych kategorycznych losowymi wartościami z istniejących kategorii.
+
+    Parametry:
+    df (DataFrame): DataFrame z danymi.
+    kolumny (list): Lista nazw kolumn kategorycznych do uzupełnienia.
+
+    Zwraca:
+    DataFrame: DataFrame z uzupełnionymi brakami.
+    """
+    for kolumna in kolumny:
+        istniejące_wartosci = df[kolumna].dropna().unique()
+        maska_brakow = df[kolumna].isna()
+        liczba_brakow = maska_brakow.sum()
+        losowe_wartosci = np.random.choice(istniejące_wartosci, size=liczba_brakow, replace=True)
+        df.loc[maska_brakow, kolumna] = losowe_wartosci
+    return df
+
+
 
 # Czyszczenie i przygotowanie danych
-data['Customer.Type'].fillna('Unknown', inplace=True)
 data['Age'].fillna(data['Age'].median(), inplace=True)
-data['Gate.location'].fillna(data['Gate.location'].median(), inplace=True)
 data['Arrival.Delay.in.Minutes'].fillna(data['Arrival.Delay.in.Minutes'].median(), inplace=True)
+data = uzupelnij_braki_kategoryczne(data, ['Customer.Type', 'Gate.location'])
 
 st.write("Podgląd danych:", data.head())
 
