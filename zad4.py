@@ -81,6 +81,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 st.divider()
+
+
 # Proste drzewo decyzyjne
 st.subheader("Proste drzewo decyzyjne")
 criterion = st.selectbox("Wybierz regułę klasyfikacyjną", ["gini", "entropy"])
@@ -198,6 +200,9 @@ st.markdown(
 )
 
 st.divider()
+
+
+
 # Bagging
 st.subheader("Bagging")
 n_estimators = st.slider("Liczba drzew w baggingu", min_value=10, max_value=200, step=10, value=50)
@@ -213,11 +218,19 @@ bagging_metrics = evaluate_model(bagging_model, X_train, X_test, y_train, y_test
 # Wizualizacja wyników baggingu
 st.write("### Wyniki baggingu")
 st.write(f"dla liczby drzew w baggingu równą `{n_estimators}`")
-st.metric("Dokładność", f"{bagging_metrics['Accuracy']:.4f}")
-st.metric("Precyzja", f"{bagging_metrics['Precision']:.4f}")
-st.metric("Czułość", f"{bagging_metrics['Recall']:.4f}")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric(label="Dokładność", value=f"{bagging_metrics['Accuracy']:.4f}")
+
+with col2:
+    st.metric(label="Precyzja", value=f"{bagging_metrics['Precision']:.4f}")
+
+with col3:
+    st.metric(label="Czułość", value=f"{bagging_metrics['Recall']:.4f}")
+
+
 st.write("")
-st.divider()
 
 # TABELA
 # Generowanie tabeli wyników baggingu
@@ -249,6 +262,7 @@ def generate_bagging_table(X_train, X_test, y_train, y_test):
     return pd.DataFrame(results)
 
 # Generowanie wyników dla różnych liczby drzew
+# TODO: odkomentuj to!
 bagging_results_df = generate_bagging_table(X_train, X_test, y_train, y_test)
 
 # Przekształcenie wyników w tabelę pivot
@@ -280,26 +294,12 @@ st.write(
 """
 )
 
-# Porównanie wyników
-st.subheader("Porównanie wyników")
-comparison_df = pd.DataFrame({
-    "Model": ["Drzewo Decyzyjne", "Bagging"],
-    "Accuracy": [dt_metrics["Accuracy"], bagging_metrics["Accuracy"]],
-    "Precision": [dt_metrics["Precision"], bagging_metrics["Precision"]],
-    "Recall": [dt_metrics["Recall"], bagging_metrics["Recall"]]
-})
-
-# Wykres porównania wyników
-fig = px.bar(
-    comparison_df.melt(id_vars="Model", var_name="Metric", value_name="Value"),
-    x="Metric", y="Value", color="Model", barmode="group",
-)
-st.plotly_chart(fig)
+st.divider()
 
 ##########
 
 # Porównanie wyników Proste Drzewo Decyzyjne vs Bagging
-st.subheader("Porównanie wyników modeli")
+st.subheader("Porównanie wyników drzewa decyzyjnego vs bagging")
 
 # Tworzenie DataFrame porównawczego
 comparison_df = pd.DataFrame({
@@ -335,7 +335,7 @@ st.markdown(
 
 
 ##########
-
+st.divider()
 # Lasy losowe
 st.write("")
 st.subheader("Lasy losowe")
@@ -365,26 +365,126 @@ feature_importances = pd.DataFrame({
 
 # Wyniki lasów losowych
 st.write("### Wyniki lasów losowych")
-st.metric("Dokładność", f"{rf_metrics['Accuracy']:.2f}")
-st.metric("Precyzja", f"{rf_metrics['Precision']:.2f}")
-st.metric("Czułość", f"{rf_metrics['Recall']:.2f}")
+st.write(f"dla liczby drzew `{n_estimators_rf}`,  regułu podziału `{max_features_rf}` i głębokości `{max_depth_rf}`")
 
-st.write("Ważność zmiennych w modelu lasów losowych:")
-st.dataframe(feature_importances)
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric(label="Dokładność", value=f"{rf_metrics['Accuracy']:.4f}")
+
+with col2:
+    st.metric(label="Precyzja", value=f"{rf_metrics['Precision']:.4f}")
+
+with col3:
+    st.metric(label="Czułość", value=f"{rf_metrics['Recall']:.4f}")
+
 
 # Wizualizacja ważności zmiennych
 fig = px.bar(feature_importances, x="Importance", y="Feature", orientation="h", title="Ważność zmiennych w lasach losowych")
 st.plotly_chart(fig)
 
 
+
+# Generowanie wyników dla różnych kombinacji parametrów lasów losowych
+@st.cache_data
+def generate_rf_table(X_train, X_test, y_train, y_test):
+    results = []
+    n_estimators_range = [10, 50, 100, 150, 200]
+    max_features_range = ['sqrt', 'log2', None]
+    max_depth_range = [5, 10, 15, 20]
+
+    for n_estimators in n_estimators_range:
+        for max_features in max_features_range:
+            for max_depth in max_depth_range:
+                rf_model = RandomForestClassifier(
+                    n_estimators=n_estimators,
+                    max_features=max_features,
+                    max_depth=max_depth,
+                    random_state=42
+                )
+                rf_model.fit(X_train, y_train)
+                metrics = evaluate_model(rf_model, X_train, X_test, y_train, y_test)
+                results.append({
+                    "Liczba Drzew (n_estimators)": n_estimators,
+                    "Max Features": max_features,
+                    "Max Depth": max_depth,
+                    "Accuracy": metrics["Accuracy"],
+                    "Precision": metrics["Precision"],
+                    "Recall": metrics["Recall"]
+                })
+    return pd.DataFrame(results)
+
+# Generowanie tabeli wyników
+rf_results_df = generate_rf_table(X_train, X_test, y_train, y_test)
+
+# Wyświetlenie tabeli wyników
+st.write("### Tabela wyników lasów losowych dla różnych kombinacji parametrów:")
+st.dataframe(rf_results_df.style.format({"Accuracy": "{:.4f}", "Precision": "{:.4f}", "Recall": "{:.4f}"}))
+
+# Wizualizacja wyników
+st.write("### Wizualizacja wyników lasów losowych")
+fig = px.parallel_coordinates(
+    rf_results_df,
+    dimensions=["Liczba Drzew (n_estimators)", "Max Features", "Max Depth"],
+    color="Accuracy",
+    title="Wpływ hiperparametrów na wyniki lasów losowych"
+)
+st.plotly_chart(fig)
+
+st.markdown(
+    """
+    Główne wnioski:
+    - Wyższa liczba drzew (**`n_estimators`**=200) daje najlepsze rezultaty, bez względu na pozostałe ustawienia.
+    - Wartość **`max_depth`**=10 stabilizuje wyniki, podczas gdy 5 lub głębokość 20 nie zawsze poprawiają wyniki.
+    - **`max_features`**= "sqrt" wydaje się być najlepszym wyborem w większości kombinacji.
+
+"""
+)
+
+# Wybór najlepszych parametrów
+best_rf = rf_results_df.loc[rf_results_df["Accuracy"].idxmax()]
+st.write("### Najlepszy zestaw parametrów lasu losowego:")
+st.json({
+    "Liczba Drzew (n_estimators)": int(best_rf["Liczba Drzew (n_estimators)"]),
+    "Max Features": best_rf["Max Features"],
+    "Max Depth": best_rf["Max Depth"],
+    "Accuracy": best_rf["Accuracy"],
+    "Precision": best_rf["Precision"],
+    "Recall": best_rf["Recall"]
+})
+
+st.markdown(
+    """
+    Dlaczego te parametry?
+
+    - Liczba drzew: Większa liczba drzew zapewnia bardziej stabilne i dokładne przewidywania. Zbyt mała liczba drzew może prowadzić do niestabilnych wyników (np.**`n_estimators`**).
+    - Liczba cech w podziale (sqrt): Ograniczenie cech losowanych w każdym węźle wprowadza różnorodność w drzewach, co zmniejsza ryzyko przeuczenia i poprawia zdolność generalizacji.
+    - Maksymalna głębokość (**`max_depth`**): Ograniczenie głębokości pozwala uniknąć przeuczenia, co jest szczególnie istotne przy dużej liczbie drzew.
+
+    """
+)
+
+
+# Ponowna analiza na podstawie najlepszych parametrów
+optimal_rf_model = RandomForestClassifier(
+    n_estimators=int(int(best_rf["Liczba Drzew (n_estimators)"])),
+    max_features=best_rf["Max Features"],
+    max_depth=int(best_rf["Max Depth"]),
+    random_state=42
+)
+optimal_rf_model.fit(X_train, y_train)
+
+
+st.divider()
 ##########
-# Boosting
+# Boostings
 st.write("")
 st.subheader("Boosting")
 
 # Suwaki dla hiperparametrów boostingu
 n_estimators_boost = st.slider("Liczba estymatorów w boostingu", min_value=10, max_value=200, step=10, value=50)
 learning_rate_boost = st.slider("Szybkość uczenia w boostingu (learning_rate)", min_value=0.01, max_value=1.0, step=0.01, value=0.1)
+
+
 
 # Model boostingu
 boost_model = AdaBoostClassifier(
@@ -400,9 +500,19 @@ boost_metrics = evaluate_model(boost_model, X_train, X_test, y_train, y_test)
 
 # Wyniki boostingu
 st.write("### Wyniki boostingu")
-st.metric("Dokładność", f"{boost_metrics['Accuracy']:.2f}")
-st.metric("Precyzja", f"{boost_metrics['Precision']:.2f}")
-st.metric("Czułość", f"{boost_metrics['Recall']:.2f}")
+st.write(f"dla liczby estymatorów `{n_estimators_boost}` i szybkości uczenia`{learning_rate_boost}`")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric(label="Dokładność", value=f"{boost_metrics['Accuracy']:.4f}")
+
+with col2:
+    st.metric(label="Precyzja", value=f"{boost_metrics['Precision']:.4f}")
+
+with col3:
+    st.metric(label="Czułość", value=f"{boost_metrics['Recall']:.4f}")
+
+
 
 # Ważność zmiennych w boostingu
 boost_importances = pd.DataFrame({
@@ -410,9 +520,168 @@ boost_importances = pd.DataFrame({
     "Importance": boost_model.feature_importances_
 }).sort_values(by="Importance", ascending=False)
 
-st.write("Ważność zmiennych w modelu boostingu:")
+# Wizualizacja ważności zmiennych
+fig = px.bar(boost_importances, x="Importance", y="Feature", orientation="h", title="Ważność zmiennych w boostingu")
+st.plotly_chart(fig)
+
+
+
+@st.cache_data
+def generate_boosting_table(X_train, X_test, y_train, y_test):
+    results = []
+    n_estimators_range = [10, 50, 100, 150, 200]
+    learning_rate_range = [0.01, 0.1, 0.2, 0.5, 1.0]
+
+    for n_estimators in n_estimators_range:
+        for learning_rate in learning_rate_range:
+            boost_model = AdaBoostClassifier(
+                estimator=DecisionTreeClassifier(max_depth=5),
+                n_estimators=n_estimators,
+                learning_rate=learning_rate,
+                random_state=42
+            )
+            boost_model.fit(X_train, y_train)
+            metrics = evaluate_model(boost_model, X_train, X_test, y_train, y_test)
+            results.append({
+                "Liczba Estymatorów (n_estimators)": n_estimators,
+                "Learning Rate": learning_rate,
+                "Accuracy": metrics["Accuracy"],
+                "Precision": metrics["Precision"],
+                "Recall": metrics["Recall"]
+            })
+    return pd.DataFrame(results)
+
+# Generowanie tabeli wyników boostingu
+boosting_results_df = generate_boosting_table(X_train, X_test, y_train, y_test)
+
+# Wyświetlenie tabeli wyników
+st.write("### Tabela wyników boostingu dla różnych kombinacji parametrów:")
+st.dataframe(boosting_results_df.style.format({"Accuracy": "{:.4f}", "Precision": "{:.4f}", "Recall": "{:.4f}"}))
+
+# Wizualizacja wyników
+fig = px.parallel_coordinates(
+    boosting_results_df,
+    dimensions=["Liczba Estymatorów (n_estimators)", "Learning Rate"],
+    color="Accuracy",
+    title="Wpływ hiperparametrów na wyniki boostingu"
+)
+st.plotly_chart(fig)
+
+st.markdown(
+    """
+    Główne wnioski:
+    
+    - Najlepsze wyniki (najwyższe Accuracy) osiągnięto dla Learning rate = 0.01 przy wyższych liczbach estymatorów.
+    
+    - Wartości Learning rate większe niż 0.2 przy niskich liczbach estymatorów skutkują spadkiem dokładności, co może wskazywać na brak wystarczającej ilości iteracji do nauki.
+    
+    - Zbyt duże Learning rate (np. 1.0) prowadzą do spadku jakości modelu nawet przy większej liczbie estymatorów.
+
+    """
+)
+
+
+
+# Wybór najlepszych parametrów
+best_boost = boosting_results_df.loc[boosting_results_df["Accuracy"].idxmax()]
+st.write("### Najlepszy zestaw parametrów boostingu:")
+st.json({
+    "Liczba Estymatorów (n_estimators)": best_boost["Liczba Estymatorów (n_estimators)"],
+    "Learning Rate": best_boost["Learning Rate"],
+    "Accuracy": best_boost["Accuracy"],
+    "Precision": best_boost["Precision"],
+    "Recall": best_boost["Recall"]
+})
+
+st.markdown(
+    """
+    Duża liczba estymatorów umożliwia modelowi precyzyjne dopasowanie do danych. Niskie tempo uczenia (**`Learning rate`**) zapewnia stabilność i unikanie nadmiernego dopasowania.
+
+"""
+)
+
+
+# Tworzenie i trenowanie modelu z najlepszymi parametrami
+optimal_boost_model = AdaBoostClassifier(
+    estimator=DecisionTreeClassifier(max_depth=5),
+    n_estimators=int(best_boost["Liczba Estymatorów (n_estimators)"]),
+    learning_rate=best_boost["Learning Rate"],
+    random_state=42
+)
+optimal_boost_model.fit(X_train, y_train)
+
+# Ważność zmiennych
+boost_importances = pd.DataFrame({
+    "Feature": X.columns,
+    "Importance": optimal_boost_model.feature_importances_
+}).sort_values(by="Importance", ascending=False)
+
+st.write("### Ważność zmiennych w modelu boostingu:")
 st.dataframe(boost_importances)
 
 # Wizualizacja ważności zmiennych
 fig = px.bar(boost_importances, x="Importance", y="Feature", orientation="h", title="Ważność zmiennych w boostingu")
 st.plotly_chart(fig)
+
+st.markdown(
+    """
+        W Boostingu kluczowe znaczenie miały zmienne związane z doświadczeniem pasażera. **`Inflight.entertainment`** była najbardziej wpływową cechą oraz **`Seat.comfort`** i **`On.board.service`** również miały wysoki wpływ, co wskazuje na znaczenie komfortu i obsługi w podróży. Analiza ważności zmiennych podkreśla, że doświadczenie pasażera jest kluczowe dla tego problemu.
+    """
+)
+
+
+# Zestawienie wyników wszystkich metod
+comparison_results = pd.DataFrame({
+    "Model": ["Drzewo Decyzyjne", "Bagging", "Las Losowy", "Boosting"],
+    "Accuracy": [dt_metrics["Accuracy"], bagging_metrics["Accuracy"], rf_metrics["Accuracy"], best_boost["Accuracy"]],
+    "Precision": [dt_metrics["Precision"], bagging_metrics["Precision"], rf_metrics["Precision"], best_boost["Precision"]],
+    "Recall": [dt_metrics["Recall"], bagging_metrics["Recall"], rf_metrics["Recall"], best_boost["Recall"]]
+})
+
+st.divider()
+
+# Wyświetlenie tabeli porównawczej
+st.write("### Tabela porównawcza wyników różnych metod:")
+st.dataframe(comparison_results.style.format({"Accuracy": "{:.4f}", "Precision": "{:.4f}", "Recall": "{:.4f}"}))
+
+# Wizualizacja porównania wyników
+fig = px.bar(
+    comparison_results.melt(id_vars="Model", var_name="Metric", value_name="Value"),
+    x="Metric", y="Value", color="Model", barmode="group",
+    title="Porównanie wyników różnych metod",
+    labels={"Value": "Wartość Metryki", "Metric": "Metryka"}
+)
+st.plotly_chart(fig)
+
+
+st.markdown(
+    """
+    1. Porównanie metod modelowania:
+    
+    **Drzewo Decyzyjne**
+
+    Prosta metoda, która daje stosunkowo dobre wyniki, ale jest podatna na przeuczenie i nie wykorzystuje mechanizmów stabilizujących, jak w bardziej zaawansowanych metodach (Bagging, Random Forest, Boosting).
+    Dobre jako wstępny model bazowy, ale jego dokładność jest niższa niż pozostałych metod.
+    
+    **Bagging**
+    
+    Metoda poprawia stabilność względem pojedynczego drzewa decyzyjnego poprzez agregację wielu drzew, ale nie wprowadza dodatkowej losowości czy optymalizacji jak w Boostingu czy Random Forest. Wyniki są nieco lepsze niż drzew decyzyjnych w Recall.
+    
+    **Las Losowy**
+    
+    Lasy losowe poprawiają różnorodność modeli i mają lepszą zdolność generalizacji dzięki losowemu wyborowi cech (max_features). Wyniki pokazują wyższą precyzję (Precision) w porównaniu do Baggingu, ale niższy Recall, co wskazuje na problem z poprawnym klasyfikowaniem pozytywnych przypadków.
+    
+    **Boosting**
+    
+    Boosting okazał się najlepszą metodą pod względem Accuracy i Recall. Mechanizm iteracyjnego dopasowywania słabo działających modeli sprawia, że Boosting jest bardzo skuteczny w klasyfikacji trudniejszych przypadków.
+    Wyniki wskazują na najwyższy poziom Recall, co czyni Boosting szczególnie użytecznym w sytuacjach, gdzie minimalizacja błędów typu II (fałszywie negatywnych) jest kluczowa.
+    
+    2. Główne wnioski:
+    
+    Boosting przewyższa inne metody pod względem dokładności i Recall, co czyni go najlepszym wyborem w tym projekcie.
+    Drzewa decyzyjne i Bagging zapewniają dobre wyniki, ale są mniej skuteczne w porównaniu do bardziej zaawansowanych technik jak Random Forest i Boosting.
+    Las Losowy oferuje wysoką precyzję, ale niższy Recall, co oznacza, że może być bardziej odpowiedni w sytuacjach, gdzie istotne jest minimalizowanie błędów typu I (fałszywie pozytywnych).
+"""
+)
+
+
