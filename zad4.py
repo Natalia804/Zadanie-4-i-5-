@@ -201,8 +201,6 @@ st.markdown(
 
 st.divider()
 
-
-
 # Bagging
 st.subheader("Bagging")
 n_estimators = st.slider("Liczba drzew w baggingu", min_value=10, max_value=200, step=10, value=50)
@@ -232,7 +230,6 @@ with col3:
 
 st.write("")
 
-# TABELA
 # Generowanie tabeli wyników baggingu
 st.subheader("Tabela wyników Baggingu")
 
@@ -262,7 +259,6 @@ def generate_bagging_table(X_train, X_test, y_train, y_test):
     return pd.DataFrame(results)
 
 # Generowanie wyników dla różnych liczby drzew
-# TODO: odkomentuj to!
 bagging_results_df = generate_bagging_table(X_train, X_test, y_train, y_test)
 
 # Przekształcenie wyników w tabelę pivot
