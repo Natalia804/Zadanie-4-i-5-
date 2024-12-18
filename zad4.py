@@ -62,13 +62,8 @@ for col in categorical_cols:
     data[col] = le.fit_transform(data[col])
 data['satisfaction'] = data['satisfaction'].apply(lambda x: 1 if x == 'satisfied' else 0)
 
-pokaz_dane = st.checkbox("Pokaż dane po przetworzeniu zmiennych kategorycznych")
-
-# Wyświetlanie danych w zależności od stanu toggle
-if pokaz_dane:
+with st.expander("Dane po przetworzeniu zmiennych kategorycznych"):
     st.dataframe(data)
-else:
-    st.write("")
 
 # Podział na X i y
 X = data.drop(columns=['satisfaction'])
@@ -649,35 +644,54 @@ fig = px.bar(
 )
 st.plotly_chart(fig)
 
+st.write("### Porównanie metod modelowania")
 
-st.markdown(
-    """
-    1. Porównanie metod modelowania:
-    
-    **Drzewo Decyzyjne**
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("### Drzewo Decyzyjne")
+    st.write(
+        "Modele oparte na pojedynczym drzewie decyzyjnym charakteryzują się niską złożonością "
+        "obliczeniową i wysoką interpretowalnością. Jednak metryki jakości (takie jak dokładność "
+        "czy czułość) są niższe niż w przypadku metod zespołowych. Drzewa decyzyjne są wrażliwe "
+        "na wariancję danych i wykazują tendencję do przeuczenia. Taki model może być dobry jako "
+        "wstępny model bazowy."
+    )
 
-    Prosta metoda, która daje stosunkowo dobre wyniki, ale jest podatna na przeuczenie i nie wykorzystuje mechanizmów stabilizujących, jak w bardziej zaawansowanych metodach (Bagging, Random Forest, Boosting).
-    Dobre jako wstępny model bazowy, ale jego dokładność jest niższa niż pozostałych metod.
-    
-    **Bagging**
-    
-    Metoda poprawia stabilność względem pojedynczego drzewa decyzyjnego poprzez agregację wielu drzew, ale nie wprowadza dodatkowej losowości czy optymalizacji jak w Boostingu czy Random Forest. Wyniki są nieco lepsze niż drzew decyzyjnych w Recall.
-    
-    **Las Losowy**
-    
-    Lasy losowe poprawiają różnorodność modeli i mają lepszą zdolność generalizacji dzięki losowemu wyborowi cech (max_features). Wyniki pokazują wyższą precyzję (Precision) w porównaniu do Baggingu, ale niższy Recall, co wskazuje na problem z poprawnym klasyfikowaniem pozytywnych przypadków.
-    
-    **Boosting**
-    
-    Boosting okazał się najlepszą metodą pod względem Accuracy i Recall. Mechanizm iteracyjnego dopasowywania słabo działających modeli sprawia, że Boosting jest bardzo skuteczny w klasyfikacji trudniejszych przypadków.
-    Wyniki wskazują na najwyższy poziom Recall, co czyni Boosting szczególnie użytecznym w sytuacjach, gdzie minimalizacja błędów typu II (fałszywie negatywnych) jest kluczowa.
-    
-    2. Główne wnioski:
-    
-    Boosting przewyższa inne metody pod względem dokładności i Recall, co czyni go najlepszym wyborem w tym projekcie.
-    Drzewa decyzyjne i Bagging zapewniają dobre wyniki, ale są mniej skuteczne w porównaniu do bardziej zaawansowanych technik jak Random Forest i Boosting.
-    Las Losowy oferuje wysoką precyzję, ale niższy Recall, co oznacza, że może być bardziej odpowiedni w sytuacjach, gdzie istotne jest minimalizowanie błędów typu I (fałszywie pozytywnych).
-"""
-)
+with col2:
+    st.markdown("### Bagging")
+    st.write(
+        "Bagging zapewnia redukcję wariancji poprzez agregację wielu niezależnie trenowanych drzew "
+        "na losowych podzbiorach danych. Metoda zwiększa stabilność i dokładność w porównaniu z "
+        "pojedynczym drzewem, jednak nie wprowadza dodatkowej losowości w doborze cech, co może "
+        "ograniczać zdolność do dalszej poprawy generalizacji. Bagging jest skuteczny w "
+        "podwyższaniu jakości klasyfikacji, lecz jego przewaga nad prostymi drzewami jest głównie "
+        "ilościowa, a nie jakościowa."
+    )
 
+col3, col4 = st.columns(2)
+with col3:
+    st.markdown("### Las Losowy (Random Forest)")
+    st.write(
+        "Las Losowy wykorzystuje losowy wybór cech w każdym węźle, co zwiększa różnorodność drzew "
+        "i poprawia generalizację względem Baggingu. Empiryczne wyniki wykazują wyższą precyzję i "
+        "stabilniejszą dokładność niż w przypadku pojedynczych drzew i Baggingu. Wadą może być "
+        "nieznaczny spadek czułości, wskazujący na zwiększoną liczbę fałszywie negatywnych "
+        "wyników. Las losowy dobrze sprawdza się, gdy istotne jest minimalizowanie fałszywych "
+        "alarmów (wysoka precyzja), przy jednoczesnym zachowaniu relatywnie dobrej zdolności "
+        "generalizacji."
+    )
 
+with col4:
+    st.markdown("### Boosting")
+    st.write(
+        "Boosting okazał się najlepszą metodą pod względem Accuracy i Recall. Mechanizm "
+        "iteracyjnego dopasowywania słabo działających modeli sprawia, że Boosting jest bardzo "
+        "skuteczny w klasyfikacji trudniejszych przypadków. Wyniki wskazują na najwyższy poziom "
+        "Recall, co czyni Boosting szczególnie użytecznym w sytuacjach, gdzie minimalizacja "
+        "błędów typu II (fałszywie negatywnych) jest kluczowa. Wadą Boostingu jest większa "
+        "złożoność obliczeniowa, podatność na nadmierne dopasowanie przy niewłaściwym doborze "
+        "parametrów (np. learning rate, liczba estymatorów) oraz potencjalne trudności z "
+        "interpretowalnością końcowego modelu. Przy odpowiedniej regularyzacji i doborze "
+        "parametrów, Boosting może dawać najwyższą efektywność klasyfikacji spośród "
+        "rozważanych metod."
+    )
